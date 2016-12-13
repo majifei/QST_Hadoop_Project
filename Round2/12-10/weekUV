@@ -1,0 +1,99 @@
+package QST_Hadoop_Project;
+
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+/**
+ * 周uv ，按年跑
+ * 
+ * @author leo
+ *
+ */
+public class WeekUV {
+
+	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+		Configuration conf = new Configuration();
+		Job job = Job.getInstance(conf, "bb" + WeekUV.class);
+		job.setJarByClass(WeekUV.class);
+		job.setJobName("weekUV");
+		job.setMapperClass(dayMap.class);
+		job.setCombinerClass(sumReduce.class);
+		job.setReducerClass(sumReduce.class);
+		job.setNumReduceTasks(2);
+		job.setMapOutputKeyClass(Text.class);
+		job.setMapOutputValueClass(IntWritable.class);
+
+		FileInputFormat.setInputPaths(job, new Path(args[0]));
+		FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+		job.waitForCompletion(true);
+	}
+
+	public static class dayMap extends Mapper<LongWritable, Text, Text, IntWritable> {
+		IntWritable one = new IntWritable(1);
+
+		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+
+			FileSplit fileSplit = (FileSplit) context.getInputSplit();
+			String pathName = fileSplit.getPath().getParent().getName();
+
+			String[] string = value.toString().split(" ");
+			Text ip = new Text();
+
+			String today = pathName;
+			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+			Date date = null;
+			try {
+				date = format.parse(today);
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Calendar calendar = Calendar.getInstance();
+			calendar.setFirstDayOfWeek(Calendar.MONDAY);
+			calendar.setTime(date);
+			int week = calendar.get(Calendar.WEEK_OF_YEAR);
+
+			ip.set(week + " " + string[0]);
+
+			context.write(ip, one);
+
+		}
+
+	}
+
+	public static class sumReduce extends Reducer<Text, IntWritable, Text, IntWritable> {
+		private IntWritable result = new IntWritable();
+		private Text ket = new Text();
+
+		public void reduce(Text key, Iterable<IntWritable> values, Context context)
+				throws IOException, InterruptedException {
+			int sum = 0;
+			for (IntWritable val : values) {
+				sum += val.get();
+			}
+			result.set(sum);
+			ket.set(key);
+			context.write(ket, result);
+
+		}
+
+	}
+
+}
