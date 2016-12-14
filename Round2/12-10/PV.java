@@ -2,8 +2,6 @@ package QST_Hadoop_Project;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -31,27 +29,15 @@ public class PV {
 	public static class Map extends MapReduceBase implements Mapper<LongWritable, Text, Text, IntWritable> {
 
 		private final static IntWritable one = new IntWritable(1);
+		Text k = new Text();
 
 		@Override
 		public void map(LongWritable key, Text value, OutputCollector<Text, IntWritable> output, Reporter reporter)
 				throws IOException {
-
-			// TODO Auto-generated method stub
-			String line = value.toString();
 			FileSplit fileSplit = (FileSplit) reporter.getInputSplit();
-			// 获得当前子目录名
-			// String pathName = fileSplit.getPath().getName();
-			// 得到父母录name
 			String pathName = fileSplit.getPath().getParent().getName();
-
-			String pattern = "((http|ftp|https)://)(([a-zA-Z0-9\\._-]+\\.[a-zA-Z]{2,6})|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,4})*(/[a-zA-Z0-9\\&%_\\./-~-]*)?";
-			// 创建 Pattern 对象
-			Pattern r = Pattern.compile(pattern);
-			// 现在创建 matcher 对象
-			Matcher m = r.matcher(line);
-			if (m.find()) {
-				output.collect(new Text(pathName), one);
-			}
+			k.set(pathName);
+			output.collect(k, one);
 
 		}
 	}
@@ -65,22 +51,6 @@ public class PV {
 			int sum = 0;
 			while (values.hasNext()) {
 				sum += values.next().get();
-
-			}
-			output.collect(key, new IntWritable(sum));
-		}
-	}
-
-	public static class resReduce extends MapReduceBase implements Reducer<Text, IntWritable, Text, IntWritable> {
-
-		@Override
-		public void reduce(Text key, Iterator<IntWritable> values, OutputCollector<Text, IntWritable> output,
-				Reporter reporter) throws IOException {
-			// TODO Auto-generated method stub
-			int sum = 0;
-			while (values.hasNext()) {
-				sum += values.next().get();
-
 			}
 			output.collect(key, new IntWritable(sum));
 		}
