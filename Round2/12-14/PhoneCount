@@ -53,8 +53,8 @@ public class PhoneCount {
 			String phone = value.toString().split(" ")[1];
 			Counter ct1 = context.getCounter("count", "Android");
 			Counter ct2 = context.getCounter("count", "Ios");
-
-			if (phone == "Android") {
+			// equals!!
+			if (phone.equals("Android")) {
 
 				ct1.increment(1);
 
